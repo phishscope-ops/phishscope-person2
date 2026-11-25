@@ -27,3 +27,6 @@
 - كل نتيجة فيها: scanner_verdict (حكم المكوّن بتاعي، مش الحكم النهائي)، severity (none/low/medium/high/critical/unknown)، evidence_items (قايمة أدلة: source, type, state, label, detail)، client_ref (رقمك انت بترجّعه).
 - Person 3 (QR + Risk Engine): يبعت الرابط المستخرج من QR إلى POST /v1/urls/scan ويستلم الأدلة ويحسب الحكم النهائي بنفسه. أنا بس بقدّم scanner_verdict كدليل واحد.
 - Person 1 (المستخدمين والسجل): بيخزن scan_id مع user_id عنده ويتحقق من الملكية. الخدمة دي مفيهاش مستخدمين، فلازم تتنده من الباك إند بس (P2_API_KEY) ومتتفتحش للتطبيق مباشرة.
+
+## مثال PHP (cURL) جاهز
+الملف: docs/examples/person2_client.php. بيعمل: إنشاء فحص مع client_ref، ثم polling للنتيجة، مع هيدر X-API-Key. استخدمه من الـ backend بتاعكم بس. لو النتيجة مرجعتش في الوقت، اعتبرها unknown مش آمن.
