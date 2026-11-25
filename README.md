@@ -3,6 +3,9 @@
 Standalone FastAPI service. Scope: URL Scanner (1-6), Email Scanner (7-12), SMS Scanner, Automatic SMS Protection,
 Secure Browser functions (21-24), Threat Intelligence Integration (25-28), Security Responsibilities. Nothing else.
 
+## PHP 8 version
+A full PHP 8 port (no framework) lives in `php/`, see `php/README.md`. Tests: `php php/tests/run.php`.
+
 ## Run
     python -m venv .venv && . .venv/bin/activate
     pip install -r requirements.txt

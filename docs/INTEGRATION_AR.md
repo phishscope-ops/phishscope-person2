@@ -30,3 +30,6 @@
 
 ## مثال PHP (cURL) جاهز
 الملف: docs/examples/person2_client.php. بيعمل: إنشاء فحص مع client_ref، ثم polling للنتيجة، مع هيدر X-API-Key. استخدمه من الـ backend بتاعكم بس. لو النتيجة مرجعتش في الوقت، اعتبرها unknown مش آمن.
+
+## نسخة PHP 8 الكاملة
+لو فريقكم PHP: فيه نسخة كاملة في فولدر php/ (من غير framework، بتشتغل على أي استضافة PHP مجانية). نفس الـ endpoints ونفس الحقول. الفرق الوحيد: الرد على POST بيرجع النتيجة كاملة في نفس الطلب (status=completed). التفاصيل والحدود في php/README.md.
