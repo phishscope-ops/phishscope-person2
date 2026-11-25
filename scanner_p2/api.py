@@ -14,6 +14,7 @@ from .config import Settings, get_settings
 from .logsafe import get_logger
 from .ratelimit import RateLimiter
 from .scanners import Scanner
+from .enrich import enrich
 from .store import ScanStore
 from .urlnorm import defang
 from .verdict import ACTIONS, UNKNOWN
@@ -23,11 +24,13 @@ log = get_logger()
 
 class UrlIn(BaseModel):
     url: str = Field(min_length=1, max_length=4096)
+    client_ref: Optional[str] = Field(default=None, max_length=80)  # caller's own id (e.g. Person 1's scan row), echoed back
 
 
 class SmsIn(BaseModel):
     body: str = Field(min_length=1, max_length=20000)
     sender: str = Field(default="", max_length=64)
+    client_ref: Optional[str] = Field(default=None, max_length=80)
 
 
 class ProtectionIn(BaseModel):
@@ -40,6 +43,7 @@ class ProtectionIn(BaseModel):
 class EmailIn(BaseModel):
     eml_base64: Optional[str] = Field(default=None, max_length=14_000_000)
     eml_text: Optional[str] = Field(default=None, max_length=10_000_000)
+    client_ref: Optional[str] = Field(default=None, max_length=80)
 
 
 def create_app(settings: Optional[Settings] = None, scanner: Optional[Scanner] = None, store: Optional[ScanStore] = None) -> FastAPI:
@@ -80,7 +84,12 @@ def create_app(settings: Optional[Settings] = None, scanner: Optional[Scanner] =
                 log.error("job failed %s", type(e).__name__)
                 st.update(sid, "failed", {"verdict": UNKNOWN, "action": ACTIONS[UNKNOWN], "reasons": ["فشل التحليل"], "caveats": ["حاول تاني بعد شوية"]})
 
-    def spawn(sid, factory):
+    def spawn(sid, factory, ref=None):
+        inner = factory
+
+        async def factory():
+            return enrich(await inner(), ref)
+
         t = asyncio.create_task(run_job(sid, factory))
         tasks.add(t)
         t.add_done_callback(tasks.discard)
@@ -89,7 +98,7 @@ def create_app(settings: Optional[Settings] = None, scanner: Optional[Scanner] =
     @app.post("/v1/urls/scan", status_code=202, dependencies=[Depends(guard)])
     async def scan_url(body: UrlIn):
         sid = st.create("url")
-        spawn(sid, lambda: sc.scan_url(body.url))
+        spawn(sid, lambda: sc.scan_url(body.url), body.client_ref)
         return {"scan_id": sid, "status": "queued", "poll_url": f"/v1/scans/{sid}"}
 
     @app.get("/v1/scans/{scan_id}", dependencies=[Depends(guard)])
@@ -114,14 +123,14 @@ def create_app(settings: Optional[Settings] = None, scanner: Optional[Scanner] =
         if len(raw) > s.max_email_bytes:
             raise HTTPException(413, {"error": "email_too_large", "max_bytes": s.max_email_bytes})
         sid = st.create("email")
-        spawn(sid, lambda: sc.scan_email(raw))
+        spawn(sid, lambda: sc.scan_email(raw), body.client_ref)
         return {"scan_id": sid, "status": "queued", "poll_url": f"/v1/scans/{sid}"}
 
     # ---- SMS Scanner (manual check)
     @app.post("/v1/sms/scan", status_code=202, dependencies=[Depends(guard)])
     async def scan_sms(body: SmsIn):
         sid = st.create("sms")
-        spawn(sid, lambda: sc.scan_sms(body.body, body.sender))
+        spawn(sid, lambda: sc.scan_sms(body.body, body.sender), body.client_ref)
         return {"scan_id": sid, "status": "queued", "poll_url": f"/v1/scans/{sid}"}
 
     # ---- Automatic SMS Protection: one fast synchronous call per incoming message
@@ -139,13 +148,14 @@ def create_app(settings: Optional[Settings] = None, scanner: Optional[Scanner] =
             res = {"verdict": UNKNOWN, "risk_score": 0, "action": ACTIONS[UNKNOWN], "confidence": "limited", "links": [],
                    "reasons": ["الخدمة مش متاحة حالياً"], "caveats": ["اعتبر الرسالة غير مؤكدة"], "evidence": {}}
             status = "service_unavailable"
+        enrich(res, body.message_id)
         return {"message_id": body.message_id, "status": status, "show_warning": res["verdict"] != "safe", **res}
 
     # ---- Secure Browser pre-check
     @app.post("/v1/browser/precheck", dependencies=[Depends(guard)])
     async def precheck(body: UrlIn):
         try:
-            return await sc.browser_precheck(body.url)
+            return enrich(await sc.browser_precheck(body.url), body.client_ref)
         except asyncio.TimeoutError:
             return {"url_defanged": defang(body.url[:200]), "verdict": UNKNOWN, "risk_score": 0, "action": ACTIONS[UNKNOWN],
                     "confidence": "limited", "reasons": ["الفحص أخد وقت أطول من المسموح"], "caveats": [],

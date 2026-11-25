@@ -10,7 +10,7 @@ Secure Browser functions (21-24), Threat Intelligence Integration (25-28), Secur
 Or: `docker build -t p2 . && docker run -p 8000:8000 p2`
 
 ## Test
-    pip install -r requirements-dev.txt && pytest -q        # 223 tests, 17 rounds, no network needed
+    pip install -r requirements-dev.txt && pytest -q        # 227 tests, 18 rounds, no network needed
 
 ## Settings (all optional, environment variables)
 | Variable | Meaning |

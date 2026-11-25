@@ -1,4 +1,4 @@
-# Review log (17 rounds, 223 tests; final run: 223 passed)
+# Review log (18 rounds, 227 tests; final run: 227 passed)
 r01 URL parsing | r02 URL extraction from text | r03 SSRF IP ranges | r04 SSRF DNS (rebinding, mixed answers) | r05 redirects |
 r06 limits | r07 threat intel | r08 verdict logic | r09 URL end to end | r10 email headers | r11 email links/attachments |
 r12 SMS | r13 automatic protection | r14 secure browser | r15 ML engine adapter | r16 API contract + log redaction | r17 fuzz and hostile input.
@@ -18,3 +18,7 @@ example.com over HTTPS with IP pinning: safe/allow, redirect trace complete. 127
 - Without a teammate engine, local heuristics run (marked degraded); accuracy then depends on the ML teammate's engine.
 - VirusTotal and blocklist are optional; without them the result says so and confidence is "limited".
 - Not tested against the real mobile app, ML engine or database of the team (they are not part of this scope); contract tests only.
+
+
+## Round 18 (hand-off to Person 1 / Person 3)
+Added severity, scanner_verdict (component verdict), evidence_items, client_ref echo. Found: hostnames with illegal characters were not rejected; fixed.

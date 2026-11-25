@@ -61,6 +61,8 @@ def normalize_url(raw: str, max_len: int = 2048) -> str:
         raise BadUrl("scheme not allowed")
     if not host:
         raise BadUrl("no host")
+    if re.search(r"[\s<>\"'\\^`{|}]", host):
+        raise BadUrl("invalid characters in host")
     ip = parse_ip_literal(host)
     if ip is not None:
         host = f"[{ip}]" if ip.version == 6 else str(ip)
